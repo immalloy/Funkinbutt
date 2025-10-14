@@ -174,62 +174,92 @@ class UltimateAutoplayModule extends Module
 		}
 	}
 
-	// Helpers keep autoplay timing aligned with playback-rate adjustments without double-applying pitch changes.
-	private function getEffectivePlaybackRate():Float
-	{
-		var state = PlayState.instance;
-		if (state != null)
-		{
-			return state.playbackRate;
-		}
+        // Helpers keep autoplay timing aligned with playback-rate adjustments without double-applying pitch changes.
+        private function getEffectivePlaybackRate():Float
+        {
+                var state = PlayState.instance;
+                if (state != null && ReflectUtil.hasField(state, "playbackRate"))
+                {
+                        var stateRate = ReflectUtil.field(state, "playbackRate");
+                        if (stateRate != null)
+                        {
+                                if (Std.isOfType(stateRate, Float))
+                                {
+                                        return stateRate;
+                                }
 
-		var conductor = Conductor.instance;
-		if (conductor != null && ReflectUtil.hasField(conductor, "playbackRate"))
-		{
-			var conductorRate:Dynamic = ReflectUtil.field(conductor, "playbackRate");
-			if (conductorRate != null)
-			{
-				if (Std.isOfType(conductorRate, Float))
-				{
-					return cast conductorRate;
-				}
+                                var parsedStateRate = Std.parseFloat(Std.string(stateRate));
+                                if (!Math.isNaN(parsedStateRate))
+                                {
+                                        return parsedStateRate;
+                                }
+                        }
+                }
 
-				var parsedRate:Float = Std.parseFloat(Std.string(conductorRate));
-				if (!Math.isNaN(parsedRate))
-				{
-					return parsedRate;
-				}
-			}
-		}
+                var conductor = Conductor.instance;
+                if (conductor != null && ReflectUtil.hasField(conductor, "playbackRate"))
+                {
+                        var conductorRate = ReflectUtil.field(conductor, "playbackRate");
+                        if (conductorRate != null)
+                        {
+                                if (Std.isOfType(conductorRate, Float))
+                                {
+                                        return conductorRate;
+                                }
 
-		if (FlxG.sound.music != null)
-		{
-			return FlxG.sound.music.pitch;
-		}
+                                var parsedConductorRate = Std.parseFloat(Std.string(conductorRate));
+                                if (!Math.isNaN(parsedConductorRate))
+                                {
+                                        return parsedConductorRate;
+                                }
+                        }
+                }
 
-		return 1.0;
-	}
+                if (FlxG.sound.music != null && ReflectUtil.hasField(FlxG.sound.music, "pitch"))
+                {
+                        var pitchValue = ReflectUtil.field(FlxG.sound.music, "pitch");
+                        if (pitchValue != null)
+                        {
+                                if (Std.isOfType(pitchValue, Float))
+                                {
+                                        return pitchValue;
+                                }
 
-	private function getRateAwareSongTime():Float
-	{
-		var conductor = Conductor.instance;
-		if (conductor == null)
-		{
-			return 0;
-		}
+                                var parsedPitch = Std.parseFloat(Std.string(pitchValue));
+                                if (!Math.isNaN(parsedPitch))
+                                {
+                                        return parsedPitch;
+                                }
+                        }
+                }
 
-		var hasRateAwareTime:Bool = ReflectUtil.hasField(conductor, "getTimeWithDelta");
-		var songTime:Float = hasRateAwareTime ? conductor.getTimeWithDelta() : conductor.songPosition;
+                return 1.0;
+        }
 
-		if (!hasRateAwareTime)
-		{
-			var playbackRate = getEffectivePlaybackRate();
-			if (Math.abs(playbackRate - 1.0) > 1e-6)
-			{
-				songTime *= playbackRate;
-			}
-		}
+        private function getRateAwareSongTime():Float
+        {
+                var conductor = Conductor.instance;
+                if (conductor == null)
+                {
+                        return 0;
+                }
 
-		return songTime;
-	}
+                var hasTimeWithDelta = ReflectUtil.hasField(conductor, "getTimeWithDelta");
+                var songTime = hasTimeWithDelta ? conductor.getTimeWithDelta() : conductor.songPosition;
+
+                var playbackRate = getEffectivePlaybackRate();
+                if (Math.abs(playbackRate - 1.0) > 1e-6)
+                {
+                        var conductorHasRateField = ReflectUtil.hasField(conductor, "playbackRate")
+                                || ReflectUtil.hasField(conductor, "rate")
+                                || ReflectUtil.hasField(conductor, "timeScale");
+
+                        if (!conductorHasRateField)
+                        {
+                                songTime *= playbackRate;
+                        }
+                }
+
+                return songTime;
+        }
 }
