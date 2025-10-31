@@ -10,10 +10,6 @@ on:
         type: string
         description: Build defines to use
         default: '-DGITHUB_BUILD'
-      save-artifact:
-        type: boolean
-        description: Save the build artifact to Github Actions (sends to itch otherwise)
-        default: false
   push:
 
 jobs:
@@ -177,12 +173,15 @@ jobs:
         run: |
           haxelib run lime build ${{ matrix.target }} -v -release --times $BUILD_DEFINES
         timeout-minutes: 120
-      - name: Save build artifact to Github Actions
-        if: ${{ github.event.inputs.save-artifact }}
+      - name: Package build artifact
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/${{ matrix.target }}.tar.gz -C export/release/${{ matrix.target }}/bin .
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.target }}
-          path: export/release/${{matrix.target}}/bin/
+          path: artifacts/${{ matrix.target }}.tar.gz
       - name: Upload build artifacts
         uses: ./.github/actions/upload-itch
         with:
@@ -250,12 +249,15 @@ jobs:
         run: |
           haxelib run lime build ${{ matrix.target }} -v -release --times $BUILD_DEFINES
         timeout-minutes: 120
-      - name: Save build artifact to Github Actions
-        if: ${{ github.event.inputs.save-artifact }}
+      - name: Package build artifact
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/${{ matrix.target }}.tar.gz -C export/release/${{ matrix.target }}/bin .
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.target }}
-          path: export/release/${{matrix.target}}/bin/
+          path: artifacts/${{ matrix.target }}.tar.gz
       - name: Upload build artifacts
         uses: ./.github/actions/upload-itch
         with:
