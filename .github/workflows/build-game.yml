@@ -157,6 +157,7 @@ jobs:
       - name: Setup build environment
         uses: ./.github/actions/setup-haxe
         with:
+          targets: ${{ matrix.target }}
           gh-token: ${{ steps.app_token.outputs.token }}
       - name: Setup HXCPP dev commit
         run: |
